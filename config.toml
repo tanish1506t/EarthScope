@@ -1,0 +1,18 @@
+# EarthScope Streamlit Configuration
+# Configured in accordance with the developing-with-streamlit skill
+
+[theme]
+primaryColor = "#00f0ff"
+backgroundColor = "#060d1f"
+secondaryBackgroundColor = "#0b172a"
+textColor = "#f1f5f9"
+font = "sans serif"
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false

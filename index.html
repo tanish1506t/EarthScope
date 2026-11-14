@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>EarthScope — Planetary Trend Explorer | NASA Space Apps</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <style>
+/* ==========================================================================
+   EarthScope — Cinematic 3D Scientific UI Theme (Inline Fallback Guaranteed)
+   ========================================================================== */
+:root {
+  --bg-deep: #030712;
+  --bg-space: #060d1f;
+  --bg-surface: rgba(11, 23, 44, 0.75);
+  --bg-glass: rgba(15, 29, 56, 0.65);
+  --bg-glass-hover: rgba(22, 42, 80, 0.82);
+  --bg-glass-active: rgba(30, 58, 110, 0.9);
+  --edge-subtle: rgba(56, 189, 248, 0.16);
+  --edge-glow: rgba(56, 189, 248, 0.45);
+  --edge-purple: rgba(168, 85, 247, 0.35);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --cyan: #00f0ff;
+  --cyan-bright: #38bdf8;
+  --blue: #3b82f6;
+  --electric-blue: #2563eb;
+  --purple: #a855f7;
+  --violet: #8b5cf6;
+  --green: #10b981;
+  --emerald: #34d399;
+  --amber: #f59e0b;
+  --red: #f43f5e;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  --shadow-glow: 0 0 25px rgba(0, 240, 255, 0.22);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-family: var(--font-sans); background-color: var(--bg-deep); color: var(--text-main); line-height: 1.5; scroll-behavior: smooth; }
+body {
+  background: radial-gradient(circle at 15% 10%, #0d2347 0%, transparent 45%),
+              radial-gradient(circle at 85% 85%, #2a1147 0%, transparent 45%),
+              var(--bg-deep);
+  background-attachment: fixed; min-height: 100vh; overflow-x: hidden; position: relative;
+}
+#space-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.65; }
+.app-container { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; position: relative; z-index: 1; }
+.app-sidebar {
+  position: sticky; top: 0; height: 100vh; background: var(--bg-glass);
+  backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-right: 1px solid var(--edge-subtle); display: flex; flex-direction: column; padding: 20px 14px;
+  overflow-y: auto; z-index: 50; box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+}
+.brand-section { display: flex; align-items: center; gap: 12px; padding: 8px 10px 18px; border-bottom: 1px solid var(--edge-subtle); margin-bottom: 12px; }
+.brand-logo-icon {
+  width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, var(--cyan), var(--electric-blue));
+  display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+}
+.brand-text h2 {
+  font-size: 19px; font-weight: 800; letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #ffffff, var(--cyan-bright)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.brand-text span { font-size: 11px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; display: block; }
+.nav-category { font-size: 10px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--text-faint); font-weight: 700; margin: 16px 8px 6px; }
+.nav-list { display: flex; flex-direction: column; gap: 3px; }
+.nav-btn {
+  display: flex; align-items: center; gap: 11px; width: 100%; padding: 10px 14px; background: transparent;
+  color: var(--text-muted); border: 1px solid transparent; border-radius: var(--radius-sm); font-size: 13.5px;
+  font-weight: 500; cursor: pointer; transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1); text-align: left;
+}
+.nav-btn i { font-size: 15px; width: 20px; text-align: center; color: var(--text-faint); transition: color 0.18s ease; font-style: normal; }
+.nav-btn:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-main); border-color: rgba(255, 255, 255, 0.08); }
+.nav-btn:hover i { color: var(--cyan); }
+.nav-btn.active {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.15), rgba(59, 130, 246, 0.08));
+  color: #ffffff; border-color: rgba(0, 240, 255, 0.35); font-weight: 600; box-shadow: inset 3px 0 0 var(--cyan);
+}
+.nav-btn.active i { color: var(--cyan); text-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+.sidebar-status { margin-top: auto; padding: 12px; border-radius: var(--radius-md); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--edge-subtle); font-size: 11.5px; }
+.status-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-dot 2s infinite; }
+.status-dot.degraded { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.status-dot.offline { background: var(--red); box-shadow: 0 0 8px var(--red); }
+@keyframes pulse-dot { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+.app-main { min-width: 0; display: flex; flex-direction: column; }
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: rgba(6, 13, 31, 0.6);
+  backdrop-filter: blur(16px); border-bottom: 1px solid var(--edge-subtle); position: sticky; top: 0; z-index: 40;
+}
+.page-headline h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.4px; color: #ffffff; }
+.page-headline p { font-size: 12px; color: var(--text-muted); }
+.top-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.control-group { display: flex; align-items: center; gap: 8px; }
+.location-dropdown, .control-select, .control-input {
+  background: rgba(15, 29, 56, 0.7); border: 1px solid var(--edge-subtle); color: var(--text-main);
+  padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; outline: none;
+  transition: all 0.2s ease; min-width: 170px;
+}
+.location-dropdown:focus, .control-select:focus, .control-input:focus { border-color: var(--cyan); box-shadow: 0 0 12px rgba(0, 240, 255, 0.25); }
+.location-dropdown option { background-color: #0b172a; color: #ffffff; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 16px;
+  border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); text-decoration: none; border: 1px solid transparent;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--cyan), var(--electric-blue)); color: #020f1e;
+  border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 0 18px rgba(0, 240, 255, 0.3);
+}
+.btn-primary:hover { filter: brightness(1.15); box-shadow: 0 0 24px rgba(0, 240, 255, 0.5); transform: translateY(-1px); }
+.btn-secondary { background: var(--bg-glass); color: var(--text-main); border-color: var(--edge-subtle); }
+.btn-secondary:hover { background: var(--bg-glass-hover); border-color: var(--edge-glow); transform: translateY(-1px); }
+.btn-glow { background: linear-gradient(135deg, var(--violet), var(--cyan)); color: #ffffff; box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.content-area { padding: 24px 28px 48px; max-width: 1600px; width: 100%; margin: 0 auto; flex: 1; }
+.page-view { display: none; animation: fadeIn 0.25s ease-out forwards; }
+.page-view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.glass-panel {
+  background: var(--bg-glass); backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--edge-subtle); border-radius: var(--radius-lg); box-shadow: var(--shadow-glass);
+  padding: 22px; position: relative; overflow: hidden;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease, box-shadow 0.28s ease;
+  transform-style: preserve-3d;
+}
+.glass-panel:hover { border-color: rgba(0, 240, 255, 0.4); box-shadow: var(--shadow-glass), 0 12px 40px rgba(0, 240, 255, 0.15); transform: translateY(-3px) scale(1.005); }
+.panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.panel-title { font-size: 16px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px; }
+.panel-title i { color: var(--cyan); font-style: normal; }
+.panel-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.grid-cols-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+.grid-cols-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.grid-cols-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.grid-cols-1-2 { display: grid; grid-template-columns: 1fr 2fr; gap: 18px; }
+.grid-cols-2-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 18px; }
+.metric-card {
+  padding: 18px 20px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(15, 29, 56, 0.7), rgba(11, 23, 44, 0.85));
+  border: 1px solid var(--edge-subtle); position: relative; overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.metric-card:hover { transform: translateY(-4px) scale(1.02); border-color: var(--cyan); box-shadow: 0 10px 25px rgba(0, 240, 255, 0.25); }
+.metric-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); opacity: 0.6; }
+.metric-label { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.metric-val { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; margin: 6px 0 2px; color: #ffffff; }
+.metric-sub { font-size: 11px; color: var(--text-faint); }
+.metric-val.cyan { color: var(--cyan); text-shadow: 0 0 12px rgba(0,240,255,0.4); }
+.metric-val.blue { color: var(--cyan-bright); }
+.metric-val.amber { color: var(--amber); }
+.metric-val.red { color: var(--red); }
+.metric-val.purple { color: var(--purple); }
+.hero-container {
+  min-height: 440px; border-radius: var(--radius-xl);
+  background: radial-gradient(circle at 75% 50%, rgba(0, 240, 255, 0.12) 0%, transparent 60%),
+              radial-gradient(circle at 20% 40%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+              var(--bg-glass);
+  backdrop-filter: blur(28px); border: 1px solid var(--edge-subtle);
+  display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; padding: 40px 48px;
+  position: relative; overflow: hidden; margin-bottom: 24px;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px;
+  background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.3); color: var(--cyan);
+  font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 16px;
+}
+.hero-title { font-size: 44px; line-height: 1.1; font-weight: 900; letter-spacing: -1.2px; color: #ffffff; margin-bottom: 14px; }
+.hero-title .highlight { background: linear-gradient(135deg, var(--cyan), var(--cyan-bright), var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-desc { font-size: 15px; color: var(--text-muted); max-width: 540px; line-height: 1.6; margin-bottom: 24px; }
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-globe-wrapper { position: relative; width: 100%; height: 380px; display: flex; align-items: center; justify-content: center; }
+#hero-earth-container { width: 100%; height: 100%; position: relative; }
+.globe-viewport-container {
+  height: 620px; width: 100%; position: relative; border-radius: var(--radius-lg); overflow: hidden;
+  background: radial-gradient(circle at 50% 50%, #06193b 0%, #020714 80%); border: 1px solid var(--edge-subtle);
+}
+#full-globe-canvas { width: 100%; height: 100%; display: block; }
+.globe-hud-overlay {
+  position: absolute; top: 18px; left: 20px; z-index: 10; background: rgba(6, 13, 31, 0.75);
+  backdrop-filter: blur(16px); padding: 14px 18px; border-radius: var(--radius-md);
+  border: 1px solid var(--edge-subtle); max-width: 320px; pointer-events: auto;
+}
+.globe-controls-overlay {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 8px;
+  background: rgba(6, 13, 31, 0.75); backdrop-filter: blur(16px); padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--edge-subtle);
+}
+.chart-box { position: relative; height: 300px; width: 100%; }
+.chart-box-lg { height: 380px; }
+#leaflet-map { width: 100%; height: 480px; border-radius: var(--radius-md); border: 1px solid var(--edge-subtle); background: #020617; z-index: 1; }
+.leaflet-container { background: #030712 !important; }
+.table-responsive { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--edge-subtle); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.data-table th { background: rgba(15, 29, 56, 0.9); padding: 12px 14px; color: var(--cyan); font-weight: 600; border-bottom: 1px solid var(--edge-subtle); position: sticky; top: 0; backdrop-filter: blur(12px); white-space: nowrap; }
+.data-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); color: var(--text-main); white-space: nowrap; }
+.data-table tbody tr:hover { background-color: rgba(0, 240, 255, 0.05); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; border: 1px solid var(--edge-subtle); background: rgba(255, 255, 255, 0.05); color: var(--text-muted); cursor: pointer; transition: all 0.18s ease; }
+.chip:hover { background: rgba(0, 240, 255, 0.12); color: #ffffff; border-color: var(--cyan); }
+.chip.active { background: linear-gradient(135deg, var(--cyan), var(--electric-blue)); color: #020f1e; border-color: transparent; font-weight: 700; }
+.badge-extreme { background: rgba(244, 63, 94, 0.18); border: 1px solid var(--red); color: #ff8da1; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+.notice-box { padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--edge-subtle); background: rgba(15, 29, 56, 0.5); font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+.notice-box strong { color: var(--cyan); }
+.notice-warning { border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); }
+.notice-warning strong { color: var(--amber); }
+.toast-box {
+  position: fixed; bottom: 24px; right: 24px; padding: 14px 20px; border-radius: var(--radius-md);
+  background: rgba(11, 23, 44, 0.95); border: 1px solid var(--cyan);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.3);
+  backdrop-filter: blur(20px); color: #ffffff; font-size: 13px; z-index: 9999;
+  display: flex; align-items: center; gap: 10px; transform: translateY(100px); opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
+}
+.toast-box.show { transform: translateY(0); opacity: 1; pointer-events: auto; }
+
+/* Real-Time Orbital Telemetry HUD Strip */
+.telemetry-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 28px;
+  background: rgba(3, 7, 18, 0.88);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  overflow-x: auto;
+  gap: 16px;
+  backdrop-filter: blur(14px);
+  position: relative;
+  z-index: 30;
+}
+.telemetry-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.telemetry-label {
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  font-size: 10.5px;
+}
+.telemetry-val {
+  color: #ffffff;
+  font-weight: 600;
+}
+.telemetry-radar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: pulse-dot 1.2s infinite;
+}
+
+/* 3D Floating HUD Toolbar for Globe */
+.hero-globe-wrapper {
+  position: relative;
+}
+.globe-hud-toolbar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(6, 13, 31, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 30px;
+  backdrop-filter: blur(16px);
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.15);
+}
+.hud-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hud-btn:hover {
+  background: rgba(0, 240, 255, 0.15);
+  color: #ffffff;
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+}
+.hud-btn.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(59, 130, 246, 0.18));
+  color: #00f0ff;
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+}
+
+@media (max-width: 1200px) { .hero-container { grid-template-columns: 1fr; padding: 32px; } .hero-globe-wrapper { height: 300px; } .grid-cols-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 900px) { .app-container { grid-template-columns: 1fr; } .app-sidebar { display: none; } .grid-cols-3, .grid-cols-2, .grid-cols-1-2, .grid-cols-2-1 { grid-template-columns: 1fr; } .content-area { padding: 16px; } }
+  </style>
+  
+  <!-- Core Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- Ambient Space Starfield Canvas -->
+  <canvas id="space-canvas"></canvas>
+
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="brand-section">
+        <div class="brand-logo-icon">🌍</div>
+        <div class="brand-text">
+          <h2>EarthScope</h2>
+          <span>Trend Explorer</span>
+        </div>
+      </div>
+
+      <div class="nav-category">Exploration</div>
+      <div class="nav-list">
+        <button class="nav-btn active" data-page="home"><i>⌂</i> <span>Home</span></button>
+        <button class="nav-btn" data-page="dash"><i>▦</i> <span>Dashboard</span></button>
+        <button class="nav-btn" data-page="globe"><i>◉</i> <span>Explore Earth 3D</span></button>
+        <button class="nav-btn" data-page="map"><i>⌖</i> <span>Interactive Map</span></button>
+      </div>
+
+      <div class="nav-category">Climate Metrics</div>
+      <div class="nav-list">
+        <button class="nav-btn" data-page="temp"><i>♨</i> <span>Temperature</span></button>
+        <button class="nav-btn" data-page="rain"><i>☂</i> <span>Precipitation</span></button>
+        <button class="nav-btn" data-page="trend"><i>↗</i> <span>Climate Trends</span></button>
+        <button class="nav-btn" data-page="comp"><i>⇄</i> <span>Location Comparison</span></button>
+        <button class="nav-btn" data-page="explore"><i>▤</i> <span>Data Explorer</span></button>
+      </div>
+
+      <div class="nav-category">Scientific Analytics</div>
+      <div class="nav-list">
+        <button class="nav-btn" data-page="stats"><i>∑</i> <span>Statistical Analysis</span></button>
+        <button class="nav-btn" data-page="anom"><i>!</i> <span>Anomaly Detection</span></button>
+        <button class="nav-btn" data-page="pred"><i>◌</i> <span>Trend Projections</span></button>
+        <button class="nav-btn" data-page="rep"><i>⇩</i> <span>Reports & Export</span></button>
+      </div>
+
+      <div class="nav-category">Mission & Docs</div>
+      <div class="nav-list">
+        <button class="nav-btn" data-page="src"><i>ⓘ</i> <span>Data Sources</span></button>
+        <button class="nav-btn" data-page="about"><i>☺</i> <span>About & Team</span></button>
+      </div>
+
+      <div class="sidebar-status">
+        <div class="status-indicator">
+          <div class="status-dot" id="backend-status-dot"></div>
+          <span id="backend-status-text" style="font-weight:600;color:#e2e8f0;">Connecting...</span>
+        </div>
+        <div style="color:var(--text-faint);font-size:10.5px;">NASA POWER API v2 · FastAPI</div>
+      </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="app-main">
+      <!-- Top Navigation & Controls Bar -->
+      <header class="top-bar">
+        <div class="page-headline">
+          <h1 id="header-title">Home</h1>
+          <p id="header-subtitle">Discover Earth’s changing climate through NASA observation data.</p>
+        </div>
+
+        <div class="top-controls">
+          <div class="control-group">
+            <select class="location-dropdown" id="global-location-select" title="Select Target Location">
+              <option value="nashik">Nashik, Maharashtra, India (Featured)</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="sfx-toggle-btn" onclick="SoundFX.playToggle()" title="Toggle Sci-Fi SFX">🔊 SFX <span style="color:var(--cyan)">ON</span></button>
+          <button class="btn btn-secondary btn-sm" onclick="downloadCurrentCSV()">⇩ CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="downloadCurrentPDF()">▣ PDF Dossier</button>
+        </div>
+      </header>
+
+      <!-- Real-Time Orbital Telemetry HUD Strip -->
+      <div class="telemetry-strip">
+        <div class="telemetry-item">
+          <div class="telemetry-radar-dot"></div>
+          <span class="telemetry-label">ORBITAL TARGET:</span>
+          <span class="telemetry-val" id="telemetry-sat-name">ISS (ZARYA)</span>
+          <button class="btn btn-secondary btn-sm" style="padding:2px 7px;font-size:10px;margin-left:4px;" onclick="cycleSatellite()">↻ CYCLE</button>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">SUB-SATELLITE POINT:</span>
+          <span class="telemetry-val" id="telemetry-sat-coords">19.99° N, 73.78° E</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">ALTITUDE:</span>
+          <span class="telemetry-val" id="telemetry-sat-alt">418.4 km</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">VELOCITY:</span>
+          <span class="telemetry-val" id="telemetry-sat-vel">7.66 km/s</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="telemetry-label">ACTIVE SENSORS:</span>
+          <span class="telemetry-val" id="telemetry-sat-sensor">SAGE III · ECOSTRESS</span>
+        </div>
+        <div class="telemetry-item" style="margin-left:auto;">
+          <span class="telemetry-label" style="color:var(--green);">TELEMETRY LINK:</span>
+          <span class="telemetry-val" style="color:var(--green);">SYNC 100%</span>
+        </div>
+      </div>
+
+      <!-- Content Area with 15 Modular Pages -->
+      <div class="content-area">
+
+        <!-- 1. HOME PAGE -->
+        <section class="page-view active" id="page-home">
+          <div class="hero-container">
+            <div>
+              <div class="hero-tag">NASA SPACE APPS CHALLENGE 2026</div>
+              <h1 class="hero-title">
+                EARTH<span class="highlight">SCOPE</span><br/>
+                Earth Trend Explorer
+              </h1>
+              <p class="hero-desc">
+                Investigate planetary environmental shifts with authentic NASA Earth observations, rigorous parametric regression, and non-parametric anomaly detection.
+              </p>
+              <div class="hero-cta">
+                <button class="btn btn-primary" onclick="navigateTo('globe')">Explore Earth 3D →</button>
+                <button class="btn btn-secondary" onclick="navigateTo('dash')">Open Dashboard</button>
+                <button class="btn btn-secondary" onclick="navigateTo('trend')">Discover Trends</button>
+              </div>
+            </div>
+            <div class="hero-globe-wrapper">
+              <div id="hero-earth-container"></div>
+              <div class="globe-hud-toolbar">
+                <button class="hud-btn active" id="btn-toggle-clouds" onclick="toggleGlobeClouds()" title="Toggle Clouds">☁️ Clouds</button>
+                <button class="hud-btn active" id="btn-toggle-atmos" onclick="toggleGlobeAtmos()" title="Toggle Atmosphere Glow">🌐 Atmosphere</button>
+                <button class="hud-btn active" id="btn-toggle-sats" onclick="toggleGlobeSats()" title="Toggle Orbital Satellites">🛰️ Satellites</button>
+                <button class="hud-btn" id="btn-speed-globe" onclick="cycleGlobeSpeed()" title="Speed Multiplier">⚡ 1x</button>
+                <button class="hud-btn" onclick="resetGlobeView()" title="Reset Camera Focus">⟲ Reset</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Preview -->
+          <div class="grid-cols-4" style="margin-bottom:24px;">
+            <div class="metric-card">
+              <div class="metric-label">Mean 2m Temp</div>
+              <div class="metric-val cyan" id="hero-m-temp">—</div>
+              <div class="metric-sub" id="hero-active-location">Nashik, India</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Annual Rainfall</div>
+              <div class="metric-val blue" id="hero-m-rain">—</div>
+              <div class="metric-sub">Mean accumulated mm/year</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Warmest Year</div>
+              <div class="metric-val amber" id="hero-m-warmest">—</div>
+              <div class="metric-sub">Historical record period</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">NASA Quality Control</div>
+              <div class="metric-val purple" id="hero-m-records">—</div>
+              <div class="metric-sub">Validated monthly points</div>
+            </div>
+          </div>
+
+          <!-- Quick Jump Cards -->
+          <div class="panel-header">
+            <div>
+              <h3 class="panel-title">Explore Planetary Systems</h3>
+              <p class="panel-subtitle">Access interactive tools built directly on NASA POWER data</p>
+            </div>
+          </div>
+          <div class="grid-cols-4">
+            <div class="glass-panel" style="cursor:pointer;" onclick="navigateTo('temp')">
+              <h4 style="color:#ffffff;margin-bottom:6px;">♨ Temperature</h4>
+              <p style="font-size:12px;color:var(--text-muted);">Diurnal envelope, monthly means, and thermal records.</p>
+            </div>
+            <div class="glass-panel" style="cursor:pointer;" onclick="navigateTo('rain')">
+              <h4 style="color:#ffffff;margin-bottom:6px;">☂ Precipitation</h4>
+              <p style="font-size:12px;color:var(--text-muted);">Hydrological cycles, monsoon bursts, and dry spells.</p>
+            </div>
+            <div class="glass-panel" style="cursor:pointer;" onclick="navigateTo('trend')">
+              <h4 style="color:#ffffff;margin-bottom:6px;">↗ Trend Analysis</h4>
+              <p style="font-size:12px;color:var(--text-muted);">OLS regression, Student's t bands, and Mann-Kendall test.</p>
+            </div>
+            <div class="glass-panel" style="cursor:pointer;" onclick="navigateTo('anom')">
+              <h4 style="color:#ffffff;margin-bottom:6px;">! Anomaly Detection</h4>
+              <p style="font-size:12px;color:var(--text-muted);">Departures from 12-month calendar normal (|Z| > 2).</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. DASHBOARD PAGE -->
+        <section class="page-view" id="page-dash">
+          <div class="grid-cols-4" style="margin-bottom:20px;">
+            <div class="metric-card">
+              <div class="metric-label">Average Temperature</div>
+              <div class="metric-val cyan" id="dash-m-avg-temp">—</div>
+              <div class="metric-sub">Air temperature at 2 meters</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Maximum Recorded</div>
+              <div class="metric-val red" id="dash-m-max-temp">—</div>
+              <div class="metric-sub">Peak monthly average</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Minimum Recorded</div>
+              <div class="metric-val blue" id="dash-m-min-temp">—</div>
+              <div class="metric-sub">Lowest nocturnal threshold</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Annual Precipitation</div>
+              <div class="metric-val purple" id="dash-m-rain">—</div>
+              <div class="metric-sub" id="dash-m-records">—</div>
+            </div>
+          </div>
+
+          <div class="grid-cols-2">
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>♨</i> Temperature Trajectory</h3>
+                  <p class="panel-subtitle">Monthly mean 2m air temperature (°C)</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="chart-dash-temp"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>☂</i> Precipitation Dynamics</h3>
+                  <p class="panel-subtitle">Monthly accumulated precipitation (mm)</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="chart-dash-rain"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. EXPLORE EARTH 3D PAGE -->
+        <section class="page-view" id="page-globe">
+          <div class="globe-viewport-container">
+            <div id="full-globe-canvas"></div>
+
+            <div class="globe-hud-overlay">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--cyan);font-weight:700;">Target Coordinate Pin</div>
+              <h3 id="globe-hud-loc-name" style="font-size:16px;color:#ffffff;margin:4px 0;">—</h3>
+              <div id="globe-hud-coords" style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">—</div>
+              <div id="globe-hud-biome" style="font-size:11px;color:var(--cyan-bright);margin-bottom:8px;">—</div>
+              <div id="globe-hud-stats" style="font-size:12px;line-height:1.6;color:#ffffff;">—</div>
+            </div>
+
+            <div class="globe-controls-overlay">
+              <button class="btn btn-secondary btn-sm" onclick="state.exploreGlobe.targetZoom=280;">Reset Zoom</button>
+              <button class="btn btn-secondary btn-sm" onclick="state.exploreGlobe.options.autoRotate = !state.exploreGlobe.options.autoRotate;">Toggle Rotation</button>
+              <button class="btn btn-primary btn-sm" onclick="navigateTo('temp')">Analyze This Location →</button>
+            </div>
+          </div>
+
+          <div class="glass-panel" style="margin-top:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title">Global Benchmark Biomes</h3>
+                <p class="panel-subtitle">Select any planetary location to focus the 3D globe and update all NASA POWER analytics</p>
+              </div>
+            </div>
+            <div id="globe-location-chips" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+        </section>
+
+        <!-- 4. INTERACTIVE MAP PAGE -->
+        <section class="page-view" id="page-map">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>⌖</i> Geospatial Sensor Network</h3>
+                <p class="panel-subtitle">Accurate geographic coordinates with thermal markers. Click any marker or click anywhere on the planet to investigate custom coordinates!</p>
+              </div>
+            </div>
+            <div id="leaflet-map"></div>
+            <div class="notice-box" id="map-hud-info" style="margin-top:16px;"></div>
+          </div>
+        </section>
+
+        <!-- 5. TEMPERATURE ANALYSIS PAGE -->
+        <section class="page-view" id="page-temp">
+          <div class="grid-cols-2-1">
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>♨</i> Thermal Envelope & Daily Swings</h3>
+                  <p class="panel-subtitle">Continuous thermal ribbon bounded by nocturnal lows (T2M_MIN) and daytime highs (T2M_MAX)</p>
+                </div>
+              </div>
+              <div class="chart-box chart-box-lg">
+                <canvas id="chart-temp-main"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Statistical Summary</h3>
+                  <p class="panel-subtitle">Parametric distribution of temperatures</p>
+                </div>
+              </div>
+              <div id="temp-stats-metrics" style="display:flex;flex-direction:column;gap:12px;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. RAINFALL ANALYSIS PAGE -->
+        <section class="page-view" id="page-rain">
+          <div class="grid-cols-2">
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>☂</i> Monthly Hydrological Totals</h3>
+                  <p class="panel-subtitle">Precipitation amount (accumulated mm / month)</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="chart-rain-monthly"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>📅</i> Seasonal Climatological Cycle</h3>
+                  <p class="panel-subtitle">Multi-year baseline normal for calendar months (Jan–Dec)</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="chart-rain-seasonal"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. CLIMATE TRENDS PAGE -->
+        <section class="page-view" id="page-trend">
+          <div class="glass-panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>↗</i> Ordinary Least Squares (OLS) Regression</h3>
+                <p class="panel-subtitle">Annual mean temperatures fitted with 95% Student's t confidence interval bands</p>
+              </div>
+            </div>
+            <div class="chart-box chart-box-lg">
+              <canvas id="chart-trend-regression"></canvas>
+            </div>
+          </div>
+
+          <div class="grid-cols-4" style="margin-bottom:20px;">
+            <div class="metric-card">
+              <div class="metric-label">Trend Rate</div>
+              <div class="metric-val cyan" id="trend-slope-display">—</div>
+              <div class="metric-sub">Decadal trajectory</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">R² Goodness of Fit</div>
+              <div class="metric-val blue" id="trend-r2-display">—</div>
+              <div class="metric-sub">Explained variance</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">p-value (Significance)</div>
+              <div class="metric-val purple" id="trend-p-display">—</div>
+              <div class="metric-sub">Alpha threshold = 0.05</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Mann-Kendall Test</div>
+              <div class="metric-val amber" id="trend-mk-display">—</div>
+              <div class="metric-sub">Non-parametric rank test</div>
+            </div>
+          </div>
+
+          <div class="notice-box">
+            <strong>Scientific Trend Verdict:</strong> <span id="trend-verdict-text">—</span><br/>
+            <span style="font-size:11.5px;color:var(--text-faint);">Notice: Empirical statistical trends describe historical observation trajectories but do not prove anthropogenic causation alone without regional attribution modeling.</span>
+          </div>
+        </section>
+
+        <!-- 8. LOCATION COMPARISON PAGE -->
+        <section class="page-view" id="page-comp">
+          <div class="glass-panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>⇄</i> Multi-Location Biome Comparison</h3>
+                <p class="panel-subtitle">Side-by-side evaluation of diverse planetary stations</p>
+              </div>
+              <div class="control-group">
+                <select class="control-select" id="comp-param-select" onchange="renderComparisonPage()">
+                  <option value="t2m">Air Temperature (°C)</option>
+                  <option value="prectotcorr">Precipitation (mm)</option>
+                </select>
+              </div>
+            </div>
+            <div class="chart-box">
+              <canvas id="chart-comp-locations"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-panel">
+            <h4 style="color:#ffffff;margin-bottom:12px;">Benchmark Comparison Table</h4>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Coordinates</th>
+                    <th>Mean Value</th>
+                    <th>Min Value</th>
+                    <th>Max Value</th>
+                    <th>Records</th>
+                  </tr>
+                </thead>
+                <tbody id="comp-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 9. DATA EXPLORER PAGE -->
+        <section class="page-view" id="page-explore">
+          <div class="glass-panel">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>▤</i> Raw NASA POWER Historical Records</h3>
+                <p class="panel-subtitle">Search, filter, and inspect verified point observations</p>
+              </div>
+              <div class="control-group">
+                <input type="text" class="control-input" id="explorer-search-input" placeholder="Search by year or month (e.g. 2024)..." oninput="renderExplorerPage()">
+                <button class="btn btn-secondary btn-sm" onclick="downloadCurrentCSV()">⇩ Export CSV</button>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th>Location</th>
+                    <th>Temp (°C)</th>
+                    <th>T_Max (°C)</th>
+                    <th>T_Min (°C)</th>
+                    <th>Precip (mm)</th>
+                    <th>Humidity (%)</th>
+                    <th>Source</th>
+                  </tr>
+                </thead>
+                <tbody id="explorer-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 10. STATISTICAL ANALYSIS PAGE -->
+        <section class="page-view" id="page-stats">
+          <div class="grid-cols-2" style="margin-bottom:20px;">
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title"><i>∑</i> Distribution Histogram</h3>
+                  <p class="panel-subtitle">Frequency binning of monthly temperatures</p>
+                </div>
+              </div>
+              <div class="chart-box">
+                <canvas id="chart-stats-hist"></canvas>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Moment Statistics & Spread</h3>
+                  <p class="panel-subtitle">Rigorous summary measures for climate variability</p>
+                </div>
+              </div>
+              <div class="grid-cols-2" style="gap:12px;">
+                <div class="metric-card"><div class="metric-label">Sample Mean</div><div class="metric-val cyan" id="stats-m-mean">—</div></div>
+                <div class="metric-card"><div class="metric-label">Median (Q50)</div><div class="metric-val blue" id="stats-m-median">—</div></div>
+                <div class="metric-card"><div class="metric-label">Standard Deviation</div><div class="metric-val purple" id="stats-m-std">—</div></div>
+                <div class="metric-card"><div class="metric-label">Interquartile Range</div><div class="metric-val amber" id="stats-m-iqr">—</div></div>
+                <div class="metric-card"><div class="metric-label">Skewness</div><div class="metric-val" id="stats-m-skewness">—</div></div>
+                <div class="metric-card"><div class="metric-label">Min / Max Range</div><div class="metric-val" id="stats-m-minmax">—</div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 11. ANOMALY DETECTION PAGE -->
+        <section class="page-view" id="page-anom">
+          <div class="glass-panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>!</i> Monthly Climatological Departures</h3>
+                <p class="panel-subtitle">Monthly deviations from each calendar month's long-term normal</p>
+              </div>
+            </div>
+            <div class="chart-box chart-box-lg">
+              <canvas id="chart-anom-diverging"></canvas>
+            </div>
+          </div>
+
+          <div class="glass-panel">
+            <h4 style="color:#ffffff;margin-bottom:6px;">Flagged Extreme Climatological Events (|Z| > 2.0)</h4>
+            <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Events exceeding two standard deviations from the seasonal expectation.</p>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th>Observed</th>
+                    <th>Normal</th>
+                    <th>Anomaly</th>
+                    <th>Z-Score</th>
+                    <th>Scientific Assessment</th>
+                  </tr>
+                </thead>
+                <tbody id="anomalies-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 12. TREND PROJECTIONS PAGE -->
+        <section class="page-view" id="page-pred">
+          <div class="glass-panel" style="margin-bottom:20px;">
+            <div class="panel-header">
+              <div>
+                <h3 class="panel-title"><i>◌</i> Empirical Trend Projections</h3>
+                <p class="panel-subtitle">Historical trajectory with forward extrapolation and 95% prediction intervals</p>
+              </div>
+            </div>
+            <div class="chart-box chart-box-lg">
+              <canvas id="chart-proj-future"></canvas>
+            </div>
+          </div>
+
+          <div class="notice-box notice-warning">
+            <strong>SCIENTIFIC ATTRIBUTION NOTICE:</strong>
+            <p id="proj-disclaimer-text" style="margin-top:6px;"></p>
+          </div>
+        </section>
+
+        <!-- 13. REPORTS & EXPORTS PAGE -->
+        <section class="page-view" id="page-rep">
+          <div class="grid-cols-2" style="margin-bottom:20px;">
+            <div class="glass-panel">
+              <h3 class="panel-title"><i>⇩</i> Scientific Data Exports</h3>
+              <p class="panel-subtitle">Download verified NASA POWER observations</p>
+              <div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;">
+                <button class="btn btn-primary" onclick="downloadCurrentCSV()">
+                  ⇩ Download CSV Dossier (.csv)
+                </button>
+                <button class="btn btn-glow" onclick="downloadCurrentPDF()">
+                  ▣ Compile Scientific PDF Report (.pdf)
+                </button>
+              </div>
+              <p style="font-size:11.5px;color:var(--text-faint);margin-top:14px;">
+                PDF reports are compiled server-side via ReportLab with complete provenance tables, equations, and citations.
+              </p>
+            </div>
+
+            <div class="glass-panel">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Investigation Summary Preview</h3>
+                  <p class="panel-subtitle">Key findings for active location</p>
+                </div>
+              </div>
+              <div id="report-summary-box"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 14. DATA SOURCES & METHODOLOGY PAGE -->
+        <section class="page-view" id="page-src">
+          <div class="grid-cols-2">
+            <div class="glass-panel">
+              <h3 class="panel-title"><i>ⓘ</i> NASA POWER API Integration</h3>
+              <p class="panel-subtitle">Prediction Of Worldwide Energy Resources v2</p>
+              <div style="font-size:13px;line-height:1.7;color:var(--text-muted);margin-top:14px;">
+                <p><strong>Primary Endpoints:</strong> <code>https://power.larc.nasa.gov/api/temporal/monthly/point</code></p>
+                <p><strong>Model Provenance:</strong> Goddard Earth Observing System (GEOS) FP-IT atmospheric reanalysis with MERRA-2 assimilation.</p>
+                <p><strong>Tracked Parameters:</strong></p>
+                <ul style="margin-left:20px;">
+                  <li><code>T2M</code>: Air Temperature at 2m (°C, daily/monthly mean)</li>
+                  <li><code>T2M_MAX</code> / <code>T2M_MIN</code>: Diurnal thermal extremes (°C)</li>
+                  <li><code>PRECTOTCORR</code>: Corrected precipitation (mm/day rate converted to mm/month)</li>
+                  <li><code>RH2M</code>: 2m Relative Humidity (%)</li>
+                  <li><code>TS</code>: Earth Radiative Skin Temperature (°C)</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <h3 class="panel-title">Quality Control & Ethics</h3>
+              <p class="panel-subtitle">Zero data fabrication protocol</p>
+              <div style="font-size:13px;line-height:1.7;color:var(--text-muted);margin-top:14px;">
+                <p><strong>Missing Values Protocol:</strong> NASA fill values (<code>-999.0</code>) are strictly quarantined as <code>NaN</code> and excluded from sums or variances. Values are never converted to zero.</p>
+                <p><strong>Precipitation Normalization:</strong> Missing days threshold enforced; monthly precipitation is scaled by calendar days.</p>
+                <p><strong>Dual-Method Hypothesis Testing:</strong> Both parametric OLS regression and non-parametric Mann-Kendall with Sen's slope are computed to prevent false positives from outliers.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 15. ABOUT & TEAM PAGE -->
+        <section class="page-view" id="page-about">
+          <div class="grid-cols-2">
+            <div class="glass-panel">
+              <h3 class="panel-title"><i>🛰️</i> NASA Space Apps Challenge 2026</h3>
+              <p class="panel-subtitle">Challenge: "Be An Earth System Trend Detective!"</p>
+              <div style="font-size:13px;line-height:1.7;color:var(--text-muted);margin-top:14px;">
+                <p>
+                  <strong>EarthScope</strong> is an open-source, full-stack Earth science investigation platform designed to empower citizens, students, and researchers to investigate planetary environmental trends using genuine NASA observation data.
+                </p>
+                <p style="margin-top:10px;">
+                  Instead of presenting static headlines, EarthScope treats the user as an active planetary trend detective—exploring multi-decadal records, testing hypotheses with rigorous statistics, and identifying extreme climate anomalies.
+                </p>
+              </div>
+            </div>
+
+            <div class="glass-panel">
+              <h3 class="panel-title">Team & Technology</h3>
+              <p class="panel-subtitle">Team CodeRex</p>
+              <div style="font-size:13px;line-height:1.7;color:var(--text-muted);margin-top:14px;">
+                <p><strong>Frontend:</strong> Three.js (WebGL 3D Earth), Chart.js 4.4, Leaflet GIS, Responsive Glassmorphism</p>
+                <p><strong>Backend:</strong> Python FastAPI, Pydantic v2, Pandas, NumPy, SciPy, ReportLab</p>
+                <p><strong>Data Pipeline:</strong> NASA Langley Research Center POWER API v2 with intelligent dual-tier disk/memory TTL caching</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div class="toast-box" id="toast"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/globe.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

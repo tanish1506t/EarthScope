@@ -1,0 +1,35 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caching and storage
+.streamlit/cache/
+data/cache/
+*.cache
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local cache & temporary files
+backend/cache/
+backend/app/cache/
+data/cache/
+.cache/
+rea/
+.agents/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
